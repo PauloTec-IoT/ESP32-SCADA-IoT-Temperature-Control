@@ -68,6 +68,9 @@
 
 # 
 
+
+# \### 🔹 1. ESP32
+
 # \## ⚙️ Como configurar
 
 # Abra o arquivo:
@@ -75,14 +78,9 @@
 monitor.ino
 
 
-
-# \### 🔹 1. ESP32
-
 # ## 🌐 Acesse o sistema online
 
-
-
-# Abra o arquivo:
+https://paulotec-iot.github.io/ESP32-SCADA-IoT-Temperature-Control/
 
 
 
