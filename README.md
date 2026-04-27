@@ -49,3 +49,11 @@ Abra o arquivo `monitor.ino` e configure:
 const char* ssid = "SEU_WIFI";
 const char* password = "SUA_SENHA";
 const char* host = "https://seu-projeto.firebaseio.com";
+
+### 🔹 Monitoramento em Tempo Real
+
+// ========== CONFIGURAÇÃO FIREBASE ==========
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  databaseURL: "https://seu-projeto.firebaseio.com/"
+};
