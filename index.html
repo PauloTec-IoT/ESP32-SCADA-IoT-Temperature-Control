@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>SCADA Monitor | PauloTec</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(145deg, #0A0F1D 0%, #0B1120 100%);
+  min-height: 100vh;
+  padding: 16px 16px 12px 16px;
+  color: #E2E8F0;
+}
+
+/* Container principal - altura total da tela */
+.app {
+  max-width: 500px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Grid de cards superiores - 2 colunas em telas maiores, mas em mobile ocupa bem */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Cards com tamanhos ABSOLUTAMENTE fixos - sem variação de altura ao mudar estado */
+.stat-card {
+  background: rgba(18, 25, 45, 0.75);
+  backdrop-filter: blur(16px);
+  border-radius: 28px;
+  padding: 18px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  text-align: center;
+  
+  /* ALTURA FIXA - nunca muda */
+  height: 148px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-card:active {
+  transform: scale(0.98);
+}
+
+.card-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  color: #7E8AA8;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Temperatura - número gigante e elegante */
+.temp-value {
+  font-size: 52px;
+  font-weight: 800;
+  font-family: 'Inter', 'SF Mono', monospace;
+  letter-spacing: -2px;
+  background: linear-gradient(135deg, #FFFFFF 20%, #86EFAC 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1.1;
+}
+
+.temp-unit-sub {
+  font-size: 22px;
+  font-weight: 500;
+  background: none;
+  -webkit-background-clip: unset;
+  color: #94A3B8;
+}
+
+/* Indicador relé com status inline (tamanho fixo) */
+.rele-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.rele-led {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transition: all 0.1s ease;
+}
+
+.rele-led.on {
+  background: #22C55E;
+  box-shadow: 0 0 10px #22C55E;
+}
+
+.rele-led.off {
+  background: #EF4444;
+  box-shadow: 0 0 6px #EF4444;
+}
+
+.rele-text-status {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+/* Botões modernos e compactos (tamanho fixo) */
+.small-btn {
+  width: 100%;
+  padding: 10px 8px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(51, 65, 85, 0.8);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.small-btn:active {
+  transform: scale(0.97);
+}
+
+.btn-auto-mode {
+  background: linear-gradient(105deg, #F59E0B, #D97706);
+  box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+}
+
+.btn-manual-mode {
+  background: linear-gradient(105deg, #3B82F6, #2563EB);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+}
+
+.btn-rele-on {
+  background: linear-gradient(105deg, #22C55E, #16A34A);
+}
+
+.btn-rele-off {
+  background: linear-gradient(105deg, #EF4444, #DC2626);
+}
+
+/* Card do gráfico - ocupa largura total, altura fixa e responsivo */
+.graph-card {
+  background: rgba(18, 25, 45, 0.65);
+  backdrop-filter: blur(12px);
+  border-radius: 28px;
+  padding: 16px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  padding: 0 6px;
+}
+
+.graph-header h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7E8AA8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.graph-badge {
+  font-size: 0.65rem;
+  background: rgba(0,0,0,0.4);
+  padding: 4px 10px;
+  border-radius: 40px;
+  color: #94A3B8;
+}
+
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: 180px;
+}
+
+canvas {
+  max-height: 180px;
+  width: 100%;
+}
+
+/* RODAPÉ com horas, crédito e versão - fixo na parte inferior */
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px 6px 12px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  font-weight: 450;
+  color: #7E8AA8;
+  background: rgba(0,0,0,0.2);
+  border-radius: 40px;
+}
+
+.footer-clock {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0,0,0,0.35);
+  padding: 4px 12px;
+  border-radius: 30px;
+  letter-spacing: 0.5px;
+  font-size: 0.7rem;
+}
+
+.footer-credits {
+  font-weight: 500;
+  background: rgba(255,215,150,0.08);
+  padding: 4px 12px;
+  border-radius: 30px;
+}
+
+.footer-version {
+  font-family: monospace;
+  background: rgba(0,0,0,0.35);
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 0.65rem;
+}
+
+/* Tooltip ou status extra */
+.status-hint {
+  font-size: 0.6rem;
+  color: #5B6E8C;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Responsivo - mantém tudo cabendo em uma tela */
+@media (max-width: 450px) {
+  body {
+    padding: 12px 12px 10px 12px;
+  }
+  .stat-card {
+    height: 138px;
+    padding: 14px 8px;
+  }
+  .temp-value {
+    font-size: 44px;
+  }
+  .temp-unit-sub {
+    font-size: 18px;
+  }
+  .rele-text-status {
+    font-size: 1rem;
+  }
+  .small-btn {
+    padding: 8px 6px;
+    font-size: 0.72rem;
+  }
+  .chart-wrapper {
+    height: 160px;
+  }
+  .footer-clock, .footer-credits, .footer-version {
+    padding: 3px 8px;
+    font-size: 0.6rem;
+  }
+}
+
+/* Efeito de hover só em desktop (opcional) */
+@media (hover: hover) {
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.15);
+  }
+}
+
+/* Ícones elegantes */
+.icon-em {
+  font-size: 1rem;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  
+  <!-- Grid superior: 2x2 cards fixos -->
+  <div class="stats-grid">
+    
+    <!-- Card 1: Temperatura -->
+    <div class="stat-card">
+      <div class="card-label">
+        <span>🌡️</span> TEMPERATURA
+      </div>
+      <div class="temp-value">
+        <span id="tempDisplay">--</span><span class="temp-unit-sub">°C</span>
+      </div>
+      <div class="status-hint">última leitura</div>
+    </div>
+
+    <!-- Card 2: Relé + Indicador + Botão (tamanho fixo) -->
+    <div class="stat-card">
+      <div class="card-label">
+        <span>⚡</span> RELÉ
+      </div>
+      <div class="rele-status-row">
+        <span id="releTextLabel" class="rele-text-status">DESLIGADO</span>
+        <span id="releLed" class="rele-led off"></span>
+      </div>
+      <button id="releActionBtn" class="small-btn btn-rele-off">
+        <span class="icon-em">🔘</span>
+        <span id="releBtnCaption">Ligar Relé</span>
+      </button>
+    </div>
+
+    <!-- Card 3: Modo (AUTO/MANUAL) -->
+    <div class="stat-card">
+      <div class="card-label">
+        <span>🎮</span> MODO
+      </div>
+      <button id="modoActionBtn" class="small-btn btn-auto-mode">
+        <span class="icon-em">⚙️</span>
+        <span id="modoBtnCaption">AUTO</span>
+      </button>
+      <div class="status-hint" id="modoHint">🔓 Manual libera relé</div>
+    </div>
+
+    <!-- Card 4: Status Resumido (informações extras fixas) -->
+    <div class="stat-card">
+      <div class="card-label">
+        <span>📊</span> ESTADO
+      </div>
+      <div style="display: flex; justify-content: center; gap: 18px; margin: 6px 0;">
+        <div style="text-align: center;">
+          <div style="font-size: 18px; font-weight: 700;" id="compactModo">AUTO</div>
+          <div style="font-size: 10px; color:#6B7B9A;">Modo</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 18px; font-weight: 700;" id="compactRele">OFF</div>
+          <div style="font-size: 10px; color:#6B7B9A;">Relé</div>
+        </div>
+      </div>
+      <div style="font-size: 10px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 40px;">
+        🔹 Firebase ativo
+      </div>
+    </div>
+  </div>
+
+  <!-- Card do Gráfico - Ocupa toda largura, fica abaixo dos stats -->
+  <div class="graph-card">
+    <div class="graph-header">
+      <h4>📈 HISTÓRICO • TEMPO REAL</h4>
+      <div class="graph-badge">últimos 20 pontos</div>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="tempChart"></canvas>
+    </div>
+  </div>
+
+  <!-- RODAPÉ com horas (esquerda), Criado por (centro), Versão (direita) -->
+  <div class="app-footer">
+    <div class="footer-clock" id="liveClock">--:--:--</div>
+    <div class="footer-credits">Criado por PauloTec</div>
+    <div class="footer-version">v3.1.0</div>
+  </div>
+
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+// ========== CONFIGURAÇÃO FIREBASE ==========
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  databaseURL: "https://seu-projeto.firebaseio.com/"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// ========== ELEMENTOS DOM ==========
+const tempSpan = document.getElementById("tempDisplay");
+const releTextSpan = document.getElementById("releTextLabel");
+const releLed = document.getElementById("releLed");
+const releActionBtn = document.getElementById("releActionBtn");
+const releBtnCaption = document.getElementById("releBtnCaption");
+const modoActionBtn = document.getElementById("modoActionBtn");
+const modoBtnCaption = document.getElementById("modoBtnCaption");
+const compactModo = document.getElementById("compactModo");
+const compactRele = document.getElementById("compactRele");
+const modoHint = document.getElementById("modoHint");
+
+// ========== RELÓGIO EM TEMPO REAL (rodapé esquerdo) ==========
+function updateClockFooter() {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const seconds = now.getSeconds().toString().padStart(2, '0');
+  const clockDiv = document.getElementById("liveClock");
+  if (clockDiv) clockDiv.innerText = `${hours}:${minutes}:${seconds}`;
+}
+updateClockFooter();
+setInterval(updateClockFooter, 1000);
+
+// ========== GRÁFICO PROFISSIONAL ==========
+const ctx = document.getElementById("tempChart").getContext("2d");
+let timeLabels = [];
+let tempValues = [];
+
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: timeLabels,
+    datasets: [{
+      label: "Temperatura °C",
+      data: tempValues,
+      borderColor: "#22C55E",
+      backgroundColor: "rgba(34, 197, 94, 0.08)",
+      borderWidth: 2.8,
+      pointRadius: 3,
+      pointBackgroundColor: "#22C55E",
+      pointBorderColor: "#0F172A",
+      pointBorderWidth: 1.2,
+      pointHoverRadius: 5,
+      tension: 0.25,
+      fill: true,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    animation: { duration: 180, easing: 'linear' },
+    plugins: {
+      legend: { labels: { color: "#94A3B8", font: { size: 10, weight: '500' } } },
+      tooltip: { mode: 'index', backgroundColor: "#1E293B", titleColor: "#E2E8F0" }
+    },
+    scales: {
+      x: {
+        ticks: { color: "#7E8AA8", maxRotation: 35, autoSkip: true, maxTicksLimit: 5, font: { size: 9 } },
+        grid: { color: "rgba(148, 163, 184, 0.1)", borderDash: [3,3] }
+      },
+      y: {
+        ticks: { color: "#CBD5E1", callback: (val) => val + "°C", stepSize: 5 },
+        grid: { color: "rgba(148, 163, 184, 0.12)" }
+      }
+    }
+  }
+});
+
+function addTempToChart(tempCelsius) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', second:'2-digit' });
+  timeLabels.push(timeStr);
+  tempValues.push(tempCelsius);
+  
+  if (timeLabels.length > 20) {
+    timeLabels.shift();
+    tempValues.shift();
+  }
+  chart.update();
+}
+
+// ========== ATUALIZA TEMPERATURA ==========
+const tempRef = db.ref("sensor/temperatura");
+tempRef.on("value", (snap) => {
+  let val = snap.val();
+  if (val !== null && val !== undefined && !isNaN(val)) {
+    let formatted = val.toFixed(1);
+    tempSpan.innerText = formatted;
+    addTempToChart(val);
+  } else {
+    tempSpan.innerText = "--";
+  }
+});
+
+// ========== ATUALIZA RELÉ (SEM MUDA TAMANHO DO CARD) ==========
+const releRef = db.ref("controle/rele");
+function updateReleInterface(isOn) {
+  const state = isOn === true;
+  if (state) {
+    releTextSpan.innerText = "LIGADO";
+    releLed.className = "rele-led on";
+    releActionBtn.className = "small-btn btn-rele-on";
+    releBtnCaption.innerText = "Desligar Relé";
+    if (compactRele) compactRele.innerText = "ON";
+  } else {
+    releTextSpan.innerText = "DESLIGADO";
+    releLed.className = "rele-led off";
+    releActionBtn.className = "small-btn btn-rele-off";
+    releBtnCaption.innerText = "Ligar Relé";
+    if (compactRele) compactRele.innerText = "OFF";
+  }
+}
+
+releRef.on("value", (snap) => {
+  const current = snap.val();
+  updateReleInterface(current);
+});
+
+// ========== ATUALIZA MODO ==========
+const modoRef = db.ref("controle/modo");
+function updateModoInterface(modo) {
+  const isAuto = (modo === "auto");
+  if (isAuto) {
+    modoBtnCaption.innerText = "AUTO";
+    modoActionBtn.className = "small-btn btn-auto-mode";
+    if (compactModo) compactModo.innerText = "AUTO";
+    if (modoHint) modoHint.innerHTML = "🔒 Modo Auto: relé bloqueado";
+  } else {
+    modoBtnCaption.innerText = "MANUAL";
+    modoActionBtn.className = "small-btn btn-manual-mode";
+    if (compactModo) compactModo.innerText = "MANUAL";
+    if (modoHint) modoHint.innerHTML = "🔓 Modo Manual: botão relé ativo";
+  }
+}
+
+modoRef.on("value", (snap) => {
+  let mode = snap.val();
+  if (!mode) mode = "auto";
+  updateModoInterface(mode);
+});
+
+// ========== AÇÕES DOS BOTÕES (sem alterar altura dos cards) ==========
+// Botão MUDAR MODO (Auto / Manual)
+modoActionBtn.onclick = async () => {
+  try {
+    const snap = await modoRef.once("value");
+    let current = snap.val();
+    if (!current) current = "auto";
+    const newMode = current === "auto" ? "manual" : "auto";
+    await modoRef.set(newMode);
+    // feedback visual suave
+    modoActionBtn.style.transform = "scale(0.96)";
+    setTimeout(() => { if (modoActionBtn) modoActionBtn.style.transform = ""; }, 130);
+  } catch (err) {
+    console.warn("Erro ao alternar modo:", err);
+  }
+};
+
+// Botão RELÉ (apenas se modo = manual)
+releActionBtn.onclick = async () => {
+  try {
+    const modoSnapshot = await modoRef.once("value");
+    const currentMode = modoSnapshot.val() || "auto";
+    
+    if (currentMode === "manual") {
+      const releSnap = await releRef.once("value");
+      const currentState = releSnap.val() === true;
+      await releRef.set(!currentState);
+      // feedback tátil
+      releActionBtn.style.transform = "scale(0.96)";
+      setTimeout(() => { if (releActionBtn) releActionBtn.style.transform = ""; }, 120);
+    } else {
+      // Modo Auto: aviso no próprio botão sem alterar layout
+      const originalText = releBtnCaption.innerText;
+      releBtnCaption.innerText = "🔒 Auto bloqueia";
+      setTimeout(() => {
+        // restaura baseado no estado atual do relé
+        releRef.once("value").then(s => {
+          const isOn = s.val() === true;
+          releBtnCaption.innerText = isOn ? "Desligar Relé" : "Ligar Relé";
+        });
+      }, 700);
+      // dá um leve aviso visual no modo
+      modoActionBtn.style.transform = "scale(0.97)";
+      setTimeout(() => { if (modoActionBtn) modoActionBtn.style.transform = ""; }, 200);
+    }
+  } catch (err) {
+    console.error("Erro no relé:", err);
+  }
+};
+
+// ========== INICIALIZAÇÃO E GARANTIA DE TAMANHO FIXO ==========
+window.addEventListener('load', () => {
+  // garantir valores iniciais consistentes sem variação de altura
+  setTimeout(() => {
+    modoRef.once("value").then(s => {
+      if (s.exists()) updateModoInterface(s.val());
+    });
+    releRef.once("value").then(s => {
+      if (s.exists()) updateReleInterface(s.val());
+    });
+  }, 80);
+  
+  // pequeno ajuste: força o gráfico a não causar overflow
+  if (chart) chart.resize();
+});
+
+// Conexão Firebase - estado elegante
+const connectedRef = db.ref(".info/connected");
+connectedRef.on("value", (snap) => {
+  const isOnline = snap.val();
+  const footerClockDiv = document.getElementById("liveClock");
+  if (footerClockDiv && !isOnline) {
+    footerClockDiv.style.opacity = "0.7";
+  } else if (footerClockDiv) {
+    footerClockDiv.style.opacity = "1";
+  }
+});
+
+// Prevenir qualquer redimensionamento não intencional dos cards devido a texto dinâmico
+// (CSS já garante altura fixa, mas resolvemos também com observer se necessário)
+const cards = document.querySelectorAll('.stat-card');
+cards.forEach(card => {
+  card.style.willChange = 'transform';
+});
+</script>
+
+</body>
+</html>
