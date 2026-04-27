@@ -49,9 +49,13 @@ Abra os arquivos e configure:
 
 `monitor.ino`
 
+// ===== FIREBASE =====
+const char* host = "https://seu-projeto.firebaseio.com";
+
+// ===== WIFI =====
 const char* ssid = "SEU_WIFI";
 const char* password = "SUA_SENHA";
-const char* host = "https://seu-projeto.firebaseio.com";
+
 
 `index.html` 
 
