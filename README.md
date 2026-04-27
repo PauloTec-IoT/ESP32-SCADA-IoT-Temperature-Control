@@ -12,7 +12,7 @@ https://paulotec-iot.github.io/ESP32-SCADA-IoT-Temperature-Control/
 
 ## 📸 Preview
 
-![Dashboard](https://via.placeholder.com/800x400?text=SCADA+Dashboard)
+![Dashboard](dashboard.png)
 
 > Interface web responsiva com gráfico em tempo real, controle de relé e modo automático/manual.
 
