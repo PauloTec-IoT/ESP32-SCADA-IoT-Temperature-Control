@@ -70,11 +70,17 @@
 
 # \## ⚙️ Como configurar
 
-# 
+# Abra o arquivo:
+
+monitor.ino
+
+
 
 # \### 🔹 1. ESP32
 
-# 
+# ## 🌐 Acesse o sistema online
+
+
 
 # Abra o arquivo:
 
