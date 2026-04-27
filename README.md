@@ -41,17 +41,21 @@ https://paulotec-iot.github.io/ESP32-SCADA-IoT-Temperature-Control/
 
 ## ⚙️ Como configurar
 
-### 🔹 ESP32
+### 🔹 ESP32 e HTML
 
-Abra o arquivo `monitor.ino` e configure:
+Abra os arquivos e configure:
 
 ```cpp
+
+`monitor.ino`
+
 const char* ssid = "SEU_WIFI";
 const char* password = "SUA_SENHA";
 const char* host = "https://seu-projeto.firebaseio.com";
 
-### 🔹 Monitoramento em Tempo Real
+`index.html` 
 
+HTML
 // ========== CONFIGURAÇÃO FIREBASE ==========
 const firebaseConfig = {
   apiKey: "SUA_API_KEY",
